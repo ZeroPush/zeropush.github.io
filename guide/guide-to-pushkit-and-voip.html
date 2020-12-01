@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'>
+<title>
+ZeroPush
+&rsaquo;
+iOS VoIP push and PushKit
+
+</title>
+
+<meta content='summary' name='twitter:card'>
+<meta content='@zeropush' name='twitter:site'>
+<meta content='@snatchev' name='twitter:creator'>
+<meta content='How to use iOS PushKit for VoIP Push' name='twitter:title'>
+<meta content='Push Notifications with a focus on developer happiness' name='twitter:description'>
+<meta content='../assets/twitter-card-120x120-f50799f83379088073b7039de88c6f87.png' name='twitter:image'>
+
+<meta content='ZeroPush supports APNS VoIP Push and PushKit. Guide to using iOS PushKit.' name='description'>
+<link href='../humans.txt' rel='author' type='text/plain'>
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="../assets/apple-touch-icon-57x57-4bec1b93077258620a795cae1523967e.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/apple-touch-icon-114x114-9bcfd0a1f613ed8716ac55121a1d02eb.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/apple-touch-icon-72x72-37b85318f83509f925f944430669058a.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/apple-touch-icon-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../assets/apple-touch-icon-120x120-6d0cc4d2adad9e27e7b66c9720a32654.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../assets/apple-touch-icon-152x152-ccc37cede8ef7b8f24f8bd83df082442.png" />
+<link rel="icon" type="image/png" href="../assets/favicon-32x32-30b198be074f4be4a0477d2e3793df36.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../assets/favicon-16x16-dcd2d5d9105455cd965db49b879be8f8.png" sizes="16x16" />
+<meta name="application-name" content="Push Notifications for Web Developers"/>
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="../assets/mstile-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+
+
+<link rel="stylesheet" media="all" href="../assets/application-cb933d4acec2a8a418cf7eab2065c43d.css" />
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39075255-1']);
+  _gaq.push(['_setDomainName', 'zeropush.com']);
+  _gaq.push(['_setSiteSpeedSampleRate', 10]);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body class='blog show signed-out'>
+<div class='navbar navbar-static-top' id='top-nav'>
+<div class='navbar-inner'>
+<div class='container'>
+<h1 class='brand'>
+<a href="../index.html">ZeroPush</a>
+</h1>
+</div>
+</div>
+</div>
+
+<div class='page pushed-down' id='main' role='main'>
+<div class='page-container'>
+<div class='container'>
+
+<div class='row'>
+<div class='span9'>
+<div class='header blog-title'>
+<h4>
+How to use PushKit for VoIP Push
+<br>
+<small>
+Published
+<abbr class="timeago" title="2015-02-28T00:00:00Z">2015-02-28</abbr>
+by
+<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%73%74%65%66%61%6e@%7a%65%72%6f%70%75%73%68.%63%6f%6d">Stefan Natchev</a>
+</small>
+</h4>
+
+</div>
+<article>
+<h3>What PushKit does and why you should use it.</h3>
+
+<p>In iOS 8 Apple introduced PushKit as part of their effort to improve battery life,
+performance, and stability for VoIP applications such as Skype, WhatsApp, and
+LINE.</p>
+
+<p>Previously, VoIP apps needed to maintain a persistent connection
+in order to receive calls. Keeping a connection open in the background,
+drains the battery as well as causes all kinds of problems when the app
+crashes or is terminated by the user.</p>
+
+<p>PushKit is meant to solve these problems by offering a <em>high-priorty</em> push
+notification with a <em>large payload</em>. The VoIP app receives the notification in
+the background, sets up the connection and displays a local notification to the
+user. When the user swipes the notification, the call is ready to connect.</p>
+
+<p>This guide will walk you through the steps to setup a VoIP application.
+We&#39;ll be using Swift to implement this example. Source files from this example
+are available on <a href="https://github.com/ZeroPush/VoIP-Demo">GitHub</a>.</p>
+
+<h3 class='header'>Differences from regular APNS Push Notifications</h3>
+
+<p>VoIP push notifications are different than regular APNS notifications mainly in how they are setup from the iOS app.
+Instead of using <code>application.registerForRemoteNotifications()</code> and handling the received notifications in
+<code>application:didReceiveRemoteNotification</code>, we use PushKit and the
+<code>PKPushRegistryDelegate</code> to request a device token and handle the delegate
+methods.</p>
+
+<p>Unlike regular push notifications, PushKit does not prompt the user
+to accept VoIP pushes. PushKit will always grant a device token to apps
+that have the VoIP entitlements without asking for approval. Further, VoIP
+pushes do not have any UI and do not show an alert. They act more like <code>content-available</code> pushes,
+and you must handle the received notification and present a local notification.</p>
+
+<table class='table table-small'>
+  <caption>Summary of differences:</caption>
+  <tr>
+    <th></th>
+    <th>Regular Push</th>
+    <th>VoIP Push</th>
+  </tr>
+  <tr>
+    <td>Getting Device Token</td>
+    <td><code>application.registerForRemoteNotifications()</code></td>
+    <td>set <code>PKPushRegistry.desiredPushTypes</code></td>
+  </tr>
+  <tr>
+    <td>Handle Registration</td>
+    <td><code>application:didRegisterForRemoteNotificationsWithDeviceToken:</code></td>
+    <td><code>pushRegistry:didUpdatePushCredentials</code></td>
+  </tr>
+  <tr>
+    <td>Handle Received Notification</td>
+    <td><code>application:didReceiveRemoteNotification</code></td>
+    <td><code>pushRegistry:didReceiveIncomingPushWithPayload</code></td>
+  </tr>
+  <tr>
+    <td>Payload Size</td>
+    <td>2048 bytes</td>
+    <td>4096 bytes</td>
+  </tr>
+  <tr>
+    <td>Certificate Type</td>
+    <td>iOS Push Services</td>
+    <td>VoIP Services</td>
+  </tr>
+  <tr>
+    <td>Requires User Consent</td>
+    <td>Yes</td>
+    <td>No*</td>
+  </tr>
+</table>
+
+<p><small>* The user must agree to receive local notifications.</small></p>
+
+<h3 class='header'>Certificate, App Id, and Entitlements</h3>
+
+<p>These are pre-requisites for setting up VoIP with ZeroPush.</p>
+
+<ul>
+<li>Make sure your app has an explicit app id and push entitlements in Apple&#39;s Developer Portal.</li>
+<li>Create a VoIP Push Certificate. This can be re-used for development and production.
+<img class='img-polaroid' alt="" src='../assets/blog/voip-cert.png'></li>
+<li>Import the VoIP Push Certificate into Keychain Access and export as a .p12 file.</li>
+<li>Create an iOS app in ZeroPush and upload the VoIP push certificate for both Production and Development environments.</li>
+<li>Make sure you have the correct <em>Background Modes</em> in XCode:
+<img class='img-polaroid' alt="" src='../assets/blog/background-modes.png'></li>
+</ul>
+
+<h3>Adding PushKit</h3>
+
+<ul>
+<li><p>Link PushKit.framework
+<img class='img-polaroid' alt="" src='../assets/blog/link-libraries.png'></p></li>
+<li><p>Import and add Delegate methods</p></li>
+</ul>
+
+<pre><code style='white-space:pre'>//AppDelegate.swift&#x000A;&#x000A;import PushKit&#x000A;import ZeroPush&#x000A;&#x000A;class AppDelegate: UIResponder, UIApplicationDelegate, PKPushRegistryDelegate, ZeroPushDelegate {&#x000A;&#x000A;  func registerVoipNotifications() {&#x000A;      let voipRegistry: PKPushRegistry = PKPushRegistry(queue: dispatch_get_main_queue())&#x000A;      voipRegistry.delegate = self&#x000A;      voipRegistry.desiredPushTypes = NSSet(object: PKPushTypeVoIP)&#x000A;      NSLog("VoIP registered")&#x000A;&#x000A;      let types: UIUserNotificationType = (UIUserNotificationType.Badge | UIUserNotificationType.Sound | UIUserNotificationType.Alert)&#x000A;      let notificationSettings = UIUserNotificationSettings(forTypes:types, categories:nil)&#x000A;      UIApplication.sharedApplication().registerUserNotificationSettings(notificationSettings)&#x000A;  }&#x000A;&#x000A;  func pushRegistry(registry: PKPushRegistry!, didUpdatePushCredentials credentials: PKPushCredentials!, forType type: String!) {&#x000A;&#x000A;      let voipZeroPush = ZeroPush()&#x000A;#if DEBUG&#x000A;      voipZeroPush.apiKey = "iosdev_xxxxxxxxxxxxxxxxxxxx"&#x000A;#else&#x000A;      voipZeroPush.apiKey = "iosprod_xxxxxxxxxxxxxxxxxxx"&#x000A;#endif&#x000A;      voipZeroPush.registerDeviceToken(credentials.token, channel: "me")&#x000A;      NSLog("subscribed `%@` to channel `me`", ZeroPush.deviceTokenFromData(credentials.token))&#x000A;  }&#x000A;&#x000A;  func pushRegistry(registry: PKPushRegistry!, didReceiveIncomingPushWithPayload payload: PKPushPayload!, forType type: String!) {&#x000A;      let data = payload.dictionaryPayload&#x000A;      NSLog("%@", data)&#x000A;&#x000A;      let notification = UILocalNotification()&#x000A;      //setup the notification&#x000A;      let aps = (data["aps"] as [NSString: AnyObject])&#x000A;      notification.alertBody = aps["alert"] as NSString!&#x000A;      notification.category = aps["category"] as NSString!&#x000A;      //show the notification&#x000A;      UIApplication.sharedApplication().presentLocalNotificationNow(notification)&#x000A;  }&#x000A;&#x000A;  func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {&#x000A;      //register for voip notifications. This can be placed somewhere else in your code.&#x000A;      registerVoipNotifications()&#x000A;      return true&#x000A;  }&#x000A;}&#x000A;</code></pre>
+
+<h3 class='header'>Sending a notification</h3>
+
+<p>Once your VoIP certificate is configured, try sending the request with cURL from the command-line
+<pre><code class='shell'>$ curl https://api.zeropush.com/broadcast/me \&#x000A;  -d &#39;auth_token=ios-server-token&#39; \&#x000A;  -d &#39;alert=World Calling&#39; \&#x000A;  -d &#39;info[hello]=world&#39;&#x000A;</code></pre></p>
+
+<p>Or you can use our <a href="">API Explorer</a> tool.</p>
+
+<h3 class='header'>VoIP Demo Project</h3>
+
+<div class='media'>
+  <a class='pull-left' style='margin-right:1em' href='https://github.com/ZeroPush/VoIP-Demo'>
+    <img class='img-polaroid' alt="" src='../assets/blog/voip-demo-screenshot.png'>
+  </a>
+  <div class='media-body'>
+    <p>
+      To test VoIP push on your own device, check out the demo project: <a href='https://github.com/ZeroPush/VoIP-Demo'>https://github.com/ZeroPush/VoIP-Demo</a>
+    </p>
+  </div>
+</div>
+</article>
+
+</div>
+<div class='span3'>
+<h4>
+<i class='icon icon-star-empty'></i>
+Popular Articles
+</h4>
+<div class='well'>
+<ol>
+<li><a href="guide-to-pushkit-and-voip.html">Guide to PushKit and VoIP Push</a></li>
+<li><a href="guide-to-effective-broadcasting.html">Guide to Effective Broadcasting</a></li>
+<li><a href="easiest-way-to-get-started-with-safari-push.html">The easiest way to get started with Safari push notifications</a></li>
+<li><a href="implementing-safari-push-notifications-in-osx-mavericks.html">Safari push notifications in OSX Mavericks</a></li>
+<li><a href="dynamic-queues-in-sidekiq.html">Dynamic Queues in Sidekiq</a></li>
+<li>
+<a href="mod_zeropush-and-ejabberd.html"><tt>mod_zeropush</tt>
+and eJabberd
+</a></li>
+<li><a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class='container'>
+<div class='hidden-phone'>
+<ul class='footer-links pull-left'>
+<li>
+&copy;
+2015
+<a href="http://symmetricinfinity.com/">Symmetric Infinity, LLC
+</a></li>
+<li><a href="../tos.html">Terms</a></li>
+<li><a href="../privacy.html">Privacy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+</body>
+
+</html>

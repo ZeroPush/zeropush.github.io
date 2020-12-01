@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'>
+<title>
+ZeroPush
+&rsaquo;
+The easiest way to get started with Safari push notifications
+
+</title>
+
+<meta content='summary' name='twitter:card'>
+<meta content='@zeropush' name='twitter:site'>
+<meta content='@adamvduke' name='twitter:creator'>
+<meta content='The easiest way to get started with Safari push notifications' name='twitter:title'>
+<meta content='Not too long ago, we had a post about implementing push notifications for Safari 7 on OS X Mavericks, but there was a lot of heavy lifting that needed to be done. Well, not anymore. ZeroPush will now implement the backend support for adding Safari Push Notifications to your website.' name='twitter:description'>
+<meta content='../assets/twitter-card-120x120-f50799f83379088073b7039de88c6f87.png' name='twitter:image'>
+
+<meta content='Push Notifications with a focus on developer happiness' name='description'>
+<link href='../humans.txt' rel='author' type='text/plain'>
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="../assets/apple-touch-icon-57x57-4bec1b93077258620a795cae1523967e.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/apple-touch-icon-114x114-9bcfd0a1f613ed8716ac55121a1d02eb.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/apple-touch-icon-72x72-37b85318f83509f925f944430669058a.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/apple-touch-icon-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../assets/apple-touch-icon-120x120-6d0cc4d2adad9e27e7b66c9720a32654.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../assets/apple-touch-icon-152x152-ccc37cede8ef7b8f24f8bd83df082442.png" />
+<link rel="icon" type="image/png" href="../assets/favicon-32x32-30b198be074f4be4a0477d2e3793df36.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../assets/favicon-16x16-dcd2d5d9105455cd965db49b879be8f8.png" sizes="16x16" />
+<meta name="application-name" content="Push Notifications for Web Developers"/>
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="../assets/mstile-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+
+
+<link rel="stylesheet" media="all" href="../assets/application-cb933d4acec2a8a418cf7eab2065c43d.css" />
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39075255-1']);
+  _gaq.push(['_setDomainName', 'zeropush.com']);
+  _gaq.push(['_setSiteSpeedSampleRate', 10]);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body class='blog show signed-out'>
+<div class='navbar navbar-static-top' id='top-nav'>
+<div class='navbar-inner'>
+<div class='container'>
+<h1 class='brand'>
+<a href="../index.html">ZeroPush</a>
+</h1>
+</div>
+</div>
+</div>
+
+<div class='page pushed-down' id='main' role='main'>
+<div class='page-container'>
+<div class='container'>
+
+<div class='row'>
+<div class='span9'>
+<div class='header blog-title'>
+<h4>
+The easiest way to get started with Safari push notifications
+<br>
+<small>
+Published
+<abbr class="timeago" title="2014-01-14T00:00:00Z">2014-01-14</abbr>
+by
+<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%61%64%61%6d@%7a%65%72%6f%70%75%73%68.%63%6f%6d">Adam Duke</a>
+</small>
+</h4>
+
+</div>
+<article>
+<section class='qa'>
+<p>
+In my
+<a href="implementing-safari-push-notifications-in-osx-mavericks.html">last post</a>,
+I covered some of the complexities of implementing Safari push notifications including 4 URLs that your application must respond to
+for push notifications to function correctly on your site. Since then, we've
+<a href="../documentation/hosted_push_packages">added the ability</a>
+to use ZeroPush as your complete backend
+solution for Safari push notifications, including serving your push package, registering/unregistering devices, and logging errors that
+may occur.
+</p>
+<p>
+I'd like to walk through adding Safari push notifications to a website, using ZeroPush.
+</p>
+<div class='alert alert-info'>
+<strong>
+TL;DR
+</strong>
+<ul>
+<li>Create an account</li>
+<li>Upload your files</li>
+<li>Add the javascript to your site</li>
+<li>Send notifications with our API</li>
+</ul>
+</div>
+</section>
+<section class='qa'>
+<h3>Prerequisites</h3>
+<p>
+We still have the same prerequisites to sending Safari push notifications as before:
+<ol>
+<li>
+Sign up for a iOS or OSX developer account on the
+<a href="https://developer.apple.com/programs/">developer programs</a> page.
+</li>
+<li>
+Create a unique website push ID to distinguish your site from others on the
+<a href="https://developer.apple.com/account/ios/identifiers/websitePushId/websitePushIdList.action">website push IDs</a> page.
+</li>
+<li>
+Generate a certificate/private key pair used to encrypt your communication with the APN (Apple Push Notification) service.
+</li>
+</ol>
+</p>
+</section>
+<section class='qa'>
+<h4>Creating a Website Push ID</h4>
+<p>
+<ol>
+<li>Login to your Apple developer account.</li>
+<li>Visit the Certificates, Identifiers, & Profiles page.</li>
+<li>Select Website Push IDs from the menu.</li>
+<li>Click the plus button and add the details for your website.</li>
+<li>Press continue, and verify your information is correct.</li>
+<li>Finally, press the register button and your ID will be saved.</li>
+</ol>
+</p>
+<h4>Generating certificates</h4>
+<p>
+<ol>
+<li>Login to your Apple developer account.</li>
+<li>Visit the Certificates, Identifiers, & Profiles page.</li>
+<li>Select Certificates from the menu.</li>
+<li>Click the plus button to add a new certificate.</li>
+<li>Select Website Push ID as the certificate type and press continue.</li>
+<li>Choose your Website Push ID from the dropdown and select continue.</li>
+<li>
+The rest of the certificate generation will continue like creating certificates for native applications.
+See our
+<a href="">Generating Certificates guide</a>
+for more details on generating certificates.
+</li>
+</ol>
+</p>
+<p>
+In addition to your newly generated certificate, you will also need an icon to represent your website. The icon is shown when
+you request permission to send notifications, in the System and Safari preferences for notifications, and with each notification.
+</p>
+</section>
+<section class='qa'>
+<h4>Configuring the ZeroPush application</h4>
+<p>
+<ol>
+<li>
+Login to ZeroPush and visit the
+<a href="">new application</a>
+page.
+</li>
+<li>Choose 'Safari' as the type, give your app a name, and press Save.</li>
+<li>Export your certificate from Keychain Access.app, by right clicking on the certificate and choosing 'Export'.</li>
+<li>Press the Open file button on the page and select your exported certificate, also enter the passphrase for the certificate if you added one during export.</li>
+<li>Turn the 'hosted push package' switch to 'ON' to allow ZeroPush to host your push package.</li>
+<li>Enter the information in the fields required to build your push package and press Save. An explanation of each field is available by hovering over the field's identifier.</li>
+</ol>
+</p>
+</section>
+<section class='qa'>
+<h4>Requesting permission</h4>
+<p>
+You are now ready to request your website visitor's permission to send them push notifications.
+</p>
+<p>
+Include the generated javascript snippet, from your application's settings page, on your site.
+Once the page has loaded call the <tt>requestSafariPush()</tt> function. Your user should be presented with
+a small menu to allow your site to send push notifications.
+</p>
+<blockquote>
+<img src="../assets/blog/safari_push_request_permission-d40c93de3f9916546e32896fe33d78f1.png" alt="Safari push request permission" />
+</blockquote>
+</section>
+<section class='qa'>
+<h4>Sending notifications</h4>
+<p>
+When your users allow Safari push notifications from your site, Safari sends a request to your ZeroPush subdomain containing the user's device token.
+ZeroPush will associate that device token with your application, and when you are ready to send notifications, you can use the
+<a href="">ZeroPush API</a>
+to send a broadcast notification to all of your users who have registered.
+</p>
+<p>
+Below is a code sample to send a broadcast notification using our ruby gem. A web based console to send broadcast notifications is coming soon.
+As always, please email me with any questions.
+</p>
+<pre><code class='ruby'>require 'zero_push'&#x000A;&#x000A;ZeroPush.auth_token = 'server-auth-token'&#x000A;ZeroPush.broadcast({&#x000A;  title:    'New Product Release!',&#x000A;  body:     'One of your favorited stores has a new product',&#x000A;  label:    'See Store',&#x000A;  url_args: ['store_id', 12345]&#x000A;})</code></pre>
+</section>
+</article>
+
+</div>
+<div class='span3'>
+<h4>
+<i class='icon icon-star-empty'></i>
+Popular Articles
+</h4>
+<div class='well'>
+<ol>
+<li><a href="guide-to-pushkit-and-voip.html">Guide to PushKit and VoIP Push</a></li>
+<li><a href="guide-to-effective-broadcasting.html">Guide to Effective Broadcasting</a></li>
+<li><a href="easiest-way-to-get-started-with-safari-push.html">The easiest way to get started with Safari push notifications</a></li>
+<li><a href="implementing-safari-push-notifications-in-osx-mavericks.html">Safari push notifications in OSX Mavericks</a></li>
+<li><a href="dynamic-queues-in-sidekiq.html">Dynamic Queues in Sidekiq</a></li>
+<li>
+<a href="mod_zeropush-and-ejabberd.html"><tt>mod_zeropush</tt>
+and eJabberd
+</a></li>
+<li><a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class='container'>
+<div class='hidden-phone'>
+<ul class='footer-links pull-left'>
+<li>
+&copy;
+2015
+<a href="http://symmetricinfinity.com/">Symmetric Infinity, LLC
+</a></li>
+<li><a href="../tos.html">Terms</a></li>
+<li><a href="../privacy.html">Privacy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+</body>
+
+</html>

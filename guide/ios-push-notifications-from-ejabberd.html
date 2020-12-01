@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'>
+<title>
+ZeroPush &rsaquo; iOS Push Notifications using Jabber and eJabberd
+
+</title>
+
+<meta content='summary' name='twitter:card'>
+<meta content='@zeropush' name='twitter:site'>
+<meta content='@adamvduke' name='twitter:creator'>
+<meta content='iOS Push Notifications using Jabber and eJabberd' name='twitter:title'>
+<meta content="How do you send iOS push notifications from eJabberd? Let's find out!" name='twitter:description'>
+<meta content='../assets/twitter-card-120x120-f50799f83379088073b7039de88c6f87.png' name='twitter:image'>
+
+<meta content='Push Notifications with a focus on developer happiness' name='description'>
+<link href='../humans.txt' rel='author' type='text/plain'>
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="../assets/apple-touch-icon-57x57-4bec1b93077258620a795cae1523967e.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/apple-touch-icon-114x114-9bcfd0a1f613ed8716ac55121a1d02eb.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/apple-touch-icon-72x72-37b85318f83509f925f944430669058a.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/apple-touch-icon-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../assets/apple-touch-icon-120x120-6d0cc4d2adad9e27e7b66c9720a32654.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../assets/apple-touch-icon-152x152-ccc37cede8ef7b8f24f8bd83df082442.png" />
+<link rel="icon" type="image/png" href="../assets/favicon-32x32-30b198be074f4be4a0477d2e3793df36.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../assets/favicon-16x16-dcd2d5d9105455cd965db49b879be8f8.png" sizes="16x16" />
+<meta name="application-name" content="Push Notifications for Web Developers"/>
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="../assets/mstile-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+
+
+<link rel="stylesheet" media="all" href="../assets/application-cb933d4acec2a8a418cf7eab2065c43d.css" />
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39075255-1']);
+  _gaq.push(['_setDomainName', 'zeropush.com']);
+  _gaq.push(['_setSiteSpeedSampleRate', 10]);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body class='blog show signed-out'>
+<div class='navbar navbar-static-top' id='top-nav'>
+<div class='navbar-inner'>
+<div class='container'>
+<h1 class='brand'>
+<a href="../index.html">ZeroPush</a>
+</h1>
+</div>
+</div>
+</div>
+
+<div class='page pushed-down' id='main' role='main'>
+<div class='page-container'>
+<div class='container'>
+
+<div class='row'>
+<div class='span9'>
+<div class='header blog-title'>
+<h4>
+<i class='icon icon-comment-alt'></i>
+iOS Push Notifications using Jabber and eJabberd
+<br>
+<small>
+Published
+<abbr class="timeago" title="2013-01-23T00:00:00Z">2013-01-23</abbr>
+by
+<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%61%64%61%6d@%7a%65%72%6f%70%75%73%68.%63%6f%6d">Adam Duke</a>
+</small>
+</h4>
+
+</div>
+<article>
+<section>
+<h4>Problem</h4>
+<p>
+I recently had the fortune to work on an iOS application that included a feature to allow users to chat with each other. The decision was made to use ejabberd as the backend for the chat, with a native,
+<span class='caps'>SMS</span>
+like, interface for the front end.
+</p>
+<p>One of the challenges we had to overcome was sending push notifications to offline users when they received an incoming chat message. At the time, it didn't seem like there was a great solution to get messages to offline users directly from ejabberd, so we started doing a bit of research. The solution we came up with requires a some integration, but only between 60-70 lines of code.</p>
+</section>
+<section>
+<h4>Hypothesis</h4>
+<p>
+Because we were concurrently developing a rails app to provide the
+<span class='caps'>API</span>
+for the iOS app, we decided the easiest solution would be to forward the offline messages from ejabberd to the rails app and integrate
+<a href='../index.html'>ZeroPush</a>
+to handle the communication with Apple's push notification service.
+</p>
+<p>
+We decided to see if we could get ejabberd to forward the messages for offline users. In my research, I came across a module for ejabberd called
+<a href='http://www.unsleeping.com/2010/07/31/prowl-module-for-ejabberd/'>mod_offline_prowl</a>
+that was originally intended to forward offline messages from ejabberd to
+<a href='http://www.prowlapp.com/'>Prowl</a>.
+After digging into the mod_offline_prowl code, I saw that it could be adapted to do what I needed. There were two things I needed it to do a bit differently.
+</p>
+<ol>
+<li>
+Easily configure the url where the data was being sent.
+<ul>
+<li>Everything was regularly deployed to a staging environment and compiling ejabberd modules per environment seemed like a maintenance headache.</li>
+</ul>
+</li>
+<li>
+Format the
+<span class='caps'>POST</span>
+body with the data needed by the rails app
+</li>
+</ol>
+</section>
+<section>
+<h4>Solution</h4>
+<p>The basic idea behind ejabberd modules is that there are lifecylce events that occur, such as a user coming online, a user going offline, or receiving a message, and a module can subscribe to a particular event. When an interesting event happens the modules that are subscribed to that event get run.</p>
+<p>
+The original mod_offline_prowl uses
+<tt>gen_mod:get_module_opt</tt>
+to retrieve certain options from ejabberd.cfg, so it seemed reasonable to use a similar approach to retrieve a url and access token for our purposes.
+</p>
+<p>Based on the applications requirements, I came up with a minimal piece of configuration that we could use to set the details per environment. We would need an auth token to avoid bogus messages from being forwarded, and a url where the messages should be forwarded.</p>
+<pre><code class='erlang'>{mod_offline_post, [&#x000A;  {auth_token, "server-auth-token"},&#x000A;  {post_url, "http://localhost:3000/your/custom/url"}&#x000A;]}</code></pre>
+<p>The module gets the properties from ejabberd.cfg using the following:</p>
+<pre><code class='erlang'>Token = gen_mod:get_module_opt(To#jid.lserver, ?MODULE, auth_token, [] ),&#x000A;PostUrl = gen_mod:get_module_opt(To#jid.lserver, ?MODULE, post_url, [] )</code></pre>
+<p>
+Each time a message is sent to an offline user, an http request to the
+<tt>PostUrl</tt>
+is made using the
+<tt>Token</tt>,
+and the contents of
+<tt>To</tt>,
+<tt>From</tt>,
+and
+<tt>Body</tt>
+fields. We implemented a controller action that accepts the incoming post and hands it off to
+<a href='../index.html'>ZeroPush</a>.
+The message makes a bunch of hops between applications, but in reality there is very little code which means fewer bugs, and a lower cost of maintenance.
+</p>
+<p>
+The full mod_offline_post module along with two others can be found
+<a href='https://github.com/adamvduke/mod_interact'>on my github profile</a>.
+</p>
+</section>
+</article>
+
+</div>
+<div class='span3'>
+<h4>
+<i class='icon icon-star-empty'></i>
+Popular Articles
+</h4>
+<div class='well'>
+<ol>
+<li><a href="guide-to-pushkit-and-voip.html">Guide to PushKit and VoIP Push</a></li>
+<li><a href="guide-to-effective-broadcasting.html">Guide to Effective Broadcasting</a></li>
+<li><a href="easiest-way-to-get-started-with-safari-push.html">The easiest way to get started with Safari push notifications</a></li>
+<li><a href="implementing-safari-push-notifications-in-osx-mavericks.html">Safari push notifications in OSX Mavericks</a></li>
+<li><a href="dynamic-queues-in-sidekiq.html">Dynamic Queues in Sidekiq</a></li>
+<li>
+<a href="mod_zeropush-and-ejabberd.html"><tt>mod_zeropush</tt>
+and eJabberd
+</a></li>
+<li><a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class='container'>
+<div class='hidden-phone'>
+<ul class='footer-links pull-left'>
+<li>
+&copy;
+2015
+<a href="http://symmetricinfinity.com/">Symmetric Infinity, LLC
+</a></li>
+<li><a href="../tos.html">Terms</a></li>
+<li><a href="../privacy.html">Privacy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+</body>
+
+</html>

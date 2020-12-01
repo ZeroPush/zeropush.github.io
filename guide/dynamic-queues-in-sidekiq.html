@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'>
+<title>
+ZeroPush
+&rsaquo;
+Dynamic Queues in Sidekiq
+
+</title>
+
+<meta content='summary' name='twitter:card'>
+<meta content='@zeropush' name='twitter:site'>
+<meta content='@snatchev' name='twitter:creator'>
+<meta content='Dynamic Queues in Sidekiq' name='twitter:title'>
+<meta content='Sidekiq is a fantastic choice for a background job processor for your rails application. For ZeroPush, we needed to be able to add/remove queues from the list of queues that Sidekiq would process while the application was running. Here is one proposed solution.' name='twitter:description'>
+<meta content='../assets/twitter-card-120x120-f50799f83379088073b7039de88c6f87.png' name='twitter:image'>
+
+<meta content='Push Notifications with a focus on developer happiness' name='description'>
+<link href='../humans.txt' rel='author' type='text/plain'>
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="../assets/apple-touch-icon-57x57-4bec1b93077258620a795cae1523967e.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/apple-touch-icon-114x114-9bcfd0a1f613ed8716ac55121a1d02eb.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/apple-touch-icon-72x72-37b85318f83509f925f944430669058a.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/apple-touch-icon-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../assets/apple-touch-icon-120x120-6d0cc4d2adad9e27e7b66c9720a32654.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../assets/apple-touch-icon-152x152-ccc37cede8ef7b8f24f8bd83df082442.png" />
+<link rel="icon" type="image/png" href="../assets/favicon-32x32-30b198be074f4be4a0477d2e3793df36.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../assets/favicon-16x16-dcd2d5d9105455cd965db49b879be8f8.png" sizes="16x16" />
+<meta name="application-name" content="Push Notifications for Web Developers"/>
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="../assets/mstile-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+
+
+<link rel="stylesheet" media="all" href="../assets/application-cb933d4acec2a8a418cf7eab2065c43d.css" />
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39075255-1']);
+  _gaq.push(['_setDomainName', 'zeropush.com']);
+  _gaq.push(['_setSiteSpeedSampleRate', 10]);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body class='blog show signed-out'>
+<div class='navbar navbar-static-top' id='top-nav'>
+<div class='navbar-inner'>
+<div class='container'>
+<h1 class='brand'>
+<a href="../index.html">ZeroPush</a>
+</h1>
+</div>
+</div>
+</div>
+
+<div class='page pushed-down' id='main' role='main'>
+<div class='page-container'>
+<div class='container'>
+
+<div class='row'>
+<div class='span9'>
+<div class='header blog-title'>
+<h4>
+Dynamic Queues in Sidekiq
+<br>
+<small>
+Published
+<abbr class="timeago" title="2013-11-18T00:00:00Z">2013-11-18</abbr>
+by
+<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%73%74%65%66%61%6e@%7a%65%72%6f%70%75%73%68.%63%6f%6d">Stefan Natchev</a>
+</small>
+</h4>
+
+</div>
+<article>
+<section class='qa'>
+<h4>
+<i class='icon icon-heart'></i>
+Sidekiq
+</h4>
+<p>
+We love using
+<a href="#">sidekiq</a>
+as the job processor for our Push workers.
+</p>
+<p>
+For ZeroPush, one of the features we wanted was for each app to have its own queue.
+This isn't strictly provided by sidekiq in general, because the sidekiq process needs to be started with a list of queues from which to process jobs.
+</p>
+<p>
+One of the options in sidekiq is the fetch strategy. By default, it uses
+<a href="https://github.com/mperham/sidekiq/blob/master/lib/sidekiq/fetch.rb#L81">BasicFetch</a>
+which fetches the list of queues to operate on. The problem is, BasicFetch only gets the list of queues once during instantiation.
+We needed the Fetcher to return the queues whenever a worker is ready to perform a job.
+In order to accomplish this, each sidekiq worker needs to query Redis for all available queues when it is ready to perform.
+</p>
+<p>
+We use the following subclass of BasicFetch to solve the problem.
+</p>
+<pre><code class='ruby'>require 'sidekiq/fetch'&#x000A;&#x000A;class DynamicFetch < Sidekiq::BasicFetch&#x000A;  def queues_cmd&#x000A;    queues = Sidekiq.redis { |conn| conn.smembers('queues') }&#x000A;    queues.map! { |q| "queue:#{q}" }&#x000A;&#x000A;    if queues.empty?&#x000A;      return super&#x000A;    else&#x000A;      @queues = queues&#x000A;    end&#x000A;&#x000A;    # for supporting strictly_ordered_queues options&#x000A;    @unique_queues = @queues.uniq&#x000A;    super&#x000A;  end&#x000A;end&#x000A;</code></pre>
+<p>
+Next, we need to make sure sidekiq uses our new fetch strategy.
+In <tt>config/initializers/sidekiq.rb</tt>
+add the following setting.
+</p>
+<pre><code class='ruby'>Sidekiq.options.merge!({&#x000A;  fetch: DynamicFetch&#x000A;})&#x000A;</code></pre>
+<p>Lastly, we need to enqueue jobs from our models like this:</p>
+<pre><code class='ruby'>def enqueue(queue_name)&#x000A;  Sidekiq::Client.push('queue' => queue_name, 'class' => Worker, 'args' => [self.id])&#x000A;end&#x000A;</code></pre>
+<p>
+Now, each time a worker tries to fetch a job, it calls into Redis and computes a new list of queues potentially containing work.
+</p>
+</section>
+</article>
+
+</div>
+<div class='span3'>
+<h4>
+<i class='icon icon-star-empty'></i>
+Popular Articles
+</h4>
+<div class='well'>
+<ol>
+<li><a href="guide-to-pushkit-and-voip.html">Guide to PushKit and VoIP Push</a></li>
+<li><a href="guide-to-effective-broadcasting.html">Guide to Effective Broadcasting</a></li>
+<li><a href="easiest-way-to-get-started-with-safari-push.html">The easiest way to get started with Safari push notifications</a></li>
+<li><a href="implementing-safari-push-notifications-in-osx-mavericks.html">Safari push notifications in OSX Mavericks</a></li>
+<li><a href="dynamic-queues-in-sidekiq.html">Dynamic Queues in Sidekiq</a></li>
+<li>
+<a href="mod_zeropush-and-ejabberd.html"><tt>mod_zeropush</tt>
+and eJabberd
+</a></li>
+<li><a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class='container'>
+<div class='hidden-phone'>
+<ul class='footer-links pull-left'>
+<li>
+&copy;
+2015
+<a href="http://symmetricinfinity.com/">Symmetric Infinity, LLC
+</a></li>
+<li><a href="../tos.html">Terms</a></li>
+<li><a href="../privacy.html">Privacy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+</body>
+
+</html>

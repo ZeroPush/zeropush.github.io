@@ -1,0 +1,10 @@
+/* humanstxt.org */
+
+/* TEAM */
+  Developer: Stefan Natchev
+  Twitter: @snatchev
+  Location: Philadelphia, PA
+
+  Developer: Adam Duke
+  Twitter: @adamvduke
+  Location: Cambridge, MA

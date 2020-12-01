@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta content='width=device-width, initial-scale=1.0' name='viewport'>
+<title>
+ZeroPush
+&rsaquo;
+mod_zeropush and eJabberd for offline Push Notifications
+
+</title>
+
+<meta content='summary' name='twitter:card'>
+<meta content='@zeropush' name='twitter:site'>
+<meta content='@snatchev' name='twitter:creator'>
+<meta content='mod_zeropush and eJabberd for offline Push Notifications' name='twitter:title'>
+<meta content="If you're building a mobile app that has a chat feature, and eJabberd as the backend for the chat, here is a simple solution to help you get up and running with push notifications for your chat messages quickly." name='twitter:description'>
+<meta content='../assets/twitter-card-120x120-f50799f83379088073b7039de88c6f87.png' name='twitter:image'>
+
+<meta content='Push Notifications with a focus on developer happiness' name='description'>
+<link href='../humans.txt' rel='author' type='text/plain'>
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="../assets/apple-touch-icon-57x57-4bec1b93077258620a795cae1523967e.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="../assets/apple-touch-icon-114x114-9bcfd0a1f613ed8716ac55121a1d02eb.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="../assets/apple-touch-icon-72x72-37b85318f83509f925f944430669058a.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="../assets/apple-touch-icon-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="../assets/apple-touch-icon-120x120-6d0cc4d2adad9e27e7b66c9720a32654.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="../assets/apple-touch-icon-152x152-ccc37cede8ef7b8f24f8bd83df082442.png" />
+<link rel="icon" type="image/png" href="../assets/favicon-32x32-30b198be074f4be4a0477d2e3793df36.png" sizes="32x32" />
+<link rel="icon" type="image/png" href="../assets/favicon-16x16-dcd2d5d9105455cd965db49b879be8f8.png" sizes="16x16" />
+<meta name="application-name" content="Push Notifications for Web Developers"/>
+<meta name="msapplication-TileColor" content="#FFFFFF" />
+<meta name="msapplication-TileImage" content="../assets/mstile-144x144-fefc690594cc8ca2fe48e39fd0bccee4.png" />
+
+
+<link rel="stylesheet" media="all" href="../assets/application-cb933d4acec2a8a418cf7eab2065c43d.css" />
+<script>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-39075255-1']);
+  _gaq.push(['_setDomainName', 'zeropush.com']);
+  _gaq.push(['_setSiteSpeedSampleRate', 10]);
+  _gaq.push(['_trackPageview']);
+  
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://' : 'http://') + 'stats.g.doubleclick.net/dc.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+</head>
+<body class='blog show signed-out'>
+<div class='navbar navbar-static-top' id='top-nav'>
+<div class='navbar-inner'>
+<div class='container'>
+<h1 class='brand'>
+<a href="../index.html">ZeroPush</a>
+</h1>
+</div>
+</div>
+</div>
+
+<div class='page pushed-down' id='main' role='main'>
+<div class='page-container'>
+<div class='container'>
+
+<div class='row'>
+<div class='span9'>
+<div class='header blog-title'>
+<h4>
+<i class='icon icon-comment-alt'>
+<tt>
+mod_zeropush
+</tt>
+and eJabberd for offline Push Notifications
+<br>
+<small>
+Published
+<abbr class="timeago" title="2013-10-23T00:00:00Z">2013-10-23</abbr>
+by
+<a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;%73%74%65%66%61%6e@%7a%65%72%6f%70%75%73%68.%63%6f%6d">Stefan Natchev</a>
+</small>
+</i>
+</h4>
+
+</div>
+<article>
+<section class='qa'>
+<h4>Introducing mod_zeropush</h4>
+<p>
+<tt>mod_zeropush</tt>
+is an eJabberd module for sending Push Notifications to
+<a href="http://www.process-one.net/docs/ejabberd/guide_en.html#htoc48">offline users</a>.
+</p>
+<p>
+If you're building a mobile app that has a chat component,
+you probably want to separate as much of that functionality away from your back-end application as possible.
+eJabberd is great stand-alone XMPP server with robust messaging and presence features.
+It is widely touted as being able to handle enormous amounts of
+concurrent messaging and is praised for it's stability.
+</p>
+<p>
+A common feature with mobile chat apps is sending push notifications
+to users who receive a message while they are offline.
+eJabberd does not have that functionality built in, but it is quite
+extensible.
+<tt>mod_zeropush</tt>
+takes advantage of the extensibility to add this common feature
+<em>without having to store device tokens</em>
+in your application.
+</p>
+<p>
+If you want to have control over the content of the Push Notification from
+<em>within your web app,</em>
+check out
+<a href="https://github.com/adamvduke/mod_interact">mod_interact</a>
+and our previous blog post:
+<a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a>
+</p>
+</section>
+<section class='qa'>
+<h4>How it works</h4>
+<p>
+Recently, we introduced
+<a href="">broadcast channels</a>
+to the ZeroPush API. Using this feature, you can create a broadcast channel for every jabber id in your system.
+When a user needs to receive a message, you can simply broadcast the
+message to the channel and all of the devices associated with that jabber user will receive the notification.
+</p>
+<p>
+Setting this up requires some code and configuration in both your iOS app
+and on your chat server.
+</p>
+</section>
+<section class='qa'>
+<h4>In your iOS app</h4>
+<p>
+All that is required in the iOS app, is to subscribe to the broadcast
+channel as soon as your app has the desired jabber id.
+If you are using the
+<a href="https://github.com/SymmetricInfinity/ZeroPush-iOS">ZeroPush Cocoapod</a>
+you can subscribe to the channel
+as part of your the push notification registration callback.
+</p>
+<pre><code class='objectivec'>- (void)application:(UIApplication *)app didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)tokenData&#x000A;{&#x000A;    [[ZeroPush shared] registerDeviceToken:tokenData];&#x000A;    [[ZeroPush shared] subscribeToChannel:<span class="placeholder">@"{jabberId}"</span>];&#x000A;    ...&#x000A;}&#x000A;</code></pre>
+<p>
+If you do not use the cocoapod, refer to the
+<a href="">register</a>
+and
+<a href="">subscribe</a>
+endpoints.
+</p>
+</section>
+<section class='qa'>
+<h4>Server-Side</h4>
+<p>
+Install by copying
+<tt>mod_zeropush.beam</tt>
+in the ebin directory of your eJabberd installation. The
+<a href="https://github.com/SymmetricInfinity/mod_zeropush">source</a>
+is available on github.
+</p>
+<p>
+Depending on the version of eJabberd you are running the configuration is slightly different.
+Version 2.1.x uses erlang syntax, found in
+<tt>/etc/ejabberd/ejabberd.cfg</tt>
+</p>
+<pre><code class='erlang'>{mod_zeropush, [&#x000A;    {sound, "default"},&#x000A;    {auth_token, "server-auth-token"},&#x000A;    {post_url, "https://api.zeropush.com/broadcast"}&#x000A;]}</code></pre>
+<p>
+Starting with version 13.10, the config files moved to yaml format.
+</p>
+<pre><code class='yaml'>mod_zeropush:&#x000A;    sound: "default"&#x000A;    auth_token: "server-auth-token"&#x000A;    post_url: "https://api.zeropush.com/broadcast"&#x000A;</code></pre>
+<h4 id='downloads'>
+<i class='icon icon-download-alt'></i>
+Downloads
+</h4>
+<p>Source can be found on github.</p>
+<ul>
+<li>
+<a href="https://github.com/SymmetricInfinity/mod_zeropush/tree/v2.1.x">mod_zeropush
+<span class='label'>
+v2.1.x
+</span>
+</a></li>
+<li>
+<a href="https://github.com/SymmetricInfinity/mod_zeropush/tree/v13.10">mod_zeropush
+<span class='label'>
+v13.10
+</span>
+</a></li>
+</ul>
+</section>
+</article>
+
+</div>
+<div class='span3'>
+<h4>
+<i class='icon icon-star-empty'></i>
+Popular Articles
+</h4>
+<div class='well'>
+<ol>
+<li><a href="guide-to-pushkit-and-voip.html">Guide to PushKit and VoIP Push</a></li>
+<li><a href="guide-to-effective-broadcasting.html">Guide to Effective Broadcasting</a></li>
+<li><a href="easiest-way-to-get-started-with-safari-push.html">The easiest way to get started with Safari push notifications</a></li>
+<li><a href="implementing-safari-push-notifications-in-osx-mavericks.html">Safari push notifications in OSX Mavericks</a></li>
+<li><a href="dynamic-queues-in-sidekiq.html">Dynamic Queues in Sidekiq</a></li>
+<li>
+<a href="mod_zeropush-and-ejabberd.html"><tt>mod_zeropush</tt>
+and eJabberd
+</a></li>
+<li><a href="ios-push-notifications-from-ejabberd.html">iOS Push Notifications from eJabberd</a></li>
+</ol>
+</div>
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class='container'>
+<div class='hidden-phone'>
+<ul class='footer-links pull-left'>
+<li>
+&copy;
+2015
+<a href="http://symmetricinfinity.com/">Symmetric Infinity, LLC
+</a></li>
+<li><a href="../tos.html">Terms</a></li>
+<li><a href="../privacy.html">Privacy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+</body>
+
+</html>
